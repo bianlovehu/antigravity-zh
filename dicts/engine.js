@@ -495,7 +495,36 @@
   const MONTH_CN = { jan: '1月', feb: '2月', mar: '3月', apr: '4月', may: '5月', jun: '6月', jul: '7月', aug: '8月', sep: '9月', oct: '10月', nov: '11月', dec: '12月' };
   const meridiem = function (ap) { return ap.toUpperCase() === 'PM' ? '下午' : '上午'; };
   // 动态正则规则（参考社区汉化项目沉淀，整串锚定匹配；在词典精确匹配之后执行）
+  function lookupDictionary(label) {
+    if (dictionary[label]) return dictionary[label];
+    const key = dictionaryLowerIndex[label.toLowerCase()];
+    return key === undefined ? undefined : dictionary[key];
+  }
+
+  function localizeQuotaDuration(duration) {
+    const labels = { day: '天', hour: '小时', minute: '分钟', second: '秒' };
+    return duration.replace(/(\d+)\s+(day|hour|minute|second)s?\b\s*,?\s*/gi,
+      (_, amount, unit) => amount + ' ' + labels[unit.toLowerCase()] + ' ').trim();
+  }
+
   const dynamicRules = [
+    [/^(?:(Sonnet \d+(?:\.\d+)*) is now available on paid Pro and Ultra plans\.\s+)?Third-party model access will no longer be available on your current plan starting on (January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s*(\d{4})\.?$/i,
+      (_, model, month, day, year) => {
+        const introduction = model ? model + ' 现已面向付费 Pro 和 Ultra 套餐开放。' : '';
+        const date = year + '年' + MONTH_CN[month.slice(0, 3).toLowerCase()] + Number(day) + '日';
+        return introduction + '自 ' + date + '起，您当前的套餐将无法访问第三方模型。';
+      }],
+    [/^(Gemini \d+(?:\.\d+)? [\w-]+) is currently available to ((?:paid )?(?:Pro|Ultra)(?: and (?:paid )?(?:Pro|Ultra))?) (?:plan )?subscribers\.?$/i,
+      (_, model, tiers) => model + ' 目前向 ' + tiers.split(/ and /i).map(tier => tier.replace(/^paid /i, '付费 ')).join(' 和 ') + ' 套餐订阅用户开放。'],
+    [/^Welcome back,\s*(.+?)\.\s*Where should we pick up\?$/i, '欢迎回来，$1。接下来做什么？'],
+    [/^Good to see you,\s*(.+?)\.\s*What['’]s next\?$/i, '很高兴见到你，$1。接下来做什么？'],
+    [/^Hey\s+(.+?),\s*what should we build today\?$/i, '$1，你好！今天想做什么？'],
+    [/^Add shortcut for (.+)$/i, (_, action) => '为“' + (lookupDictionary(action) || action) + '”添加快捷键'],
+    [/^(Remove )?Shortcut (.+?) for (.+)$/i, (_, remove, keys, action) =>
+      (remove ? '移除“' : '“') + (lookupDictionary(action) || action) + '”的快捷键 ' + keys],
+    [/^Install ([A-Z][\w.+-]*(?: [A-Z0-9][\w.+-]*){0,5})$/, '安装 $1'],
+    [/^Add (Firebase|Notion|Context7|Linear|Dynatrace|Stripe)$/, '添加 $1'],
+    [/^Details for (.+)$/i, '查看 $1 的详情'],
     [/^(\d+)\s*(?:seconds?|secs?)\s+ago$/i, '$1 秒前'],
     [/^(\d+)\s*(?:minutes?|mins?)\s+ago$/i, '$1 分钟前'],
     [/^(\d+)\s*(?:hours?|hrs?)\s+ago$/i, '$1 小时前'],
@@ -523,10 +552,10 @@
     [/^Ran (\d+) commands?$/i, '已运行 $1 个命令'],
     [/^Thinking for (\d+)s$/i, '已思考 $1 秒'],
     [/^Stopped after (\d+) steps?$/i, '已在 $1 步后停止'],
-    [/^You have used some of your weekly limit,?\s*it will fully refresh in (.*?)\.?$/i, '您已消耗了部分每周额度，将在 $1 后完全重置刷新。'],
-    [/^You have used some of your 5-?hour limit,?\s*it will fully refresh in (.*?)\.?$/i, '您已消耗了部分 5 小时额度，将在 $1 后完全重置刷新。'],
-    [/^You have hit your 5-?hour limit,?\s*it will refresh in (.*?)\.?$/i, '您已达到 5 小时上限，将在 $1 后重置刷新。'],
-    [/^You have hit your weekly limit,?\s*it will refresh in (.*?)\.?$/i, '您已达到每周上限，将在 $1 后重置刷新。'],
+    [/^You have used some of your weekly limit,?\s*it will fully refresh in (.*?)\.?$/i, (_, duration) => '您已使用部分每周配额，将在 ' + localizeQuotaDuration(duration) + '后重置。'],
+    [/^You have used some of your 5-?hour limit,?\s*it will fully refresh in (.*?)\.?$/i, (_, duration) => '您已使用部分 5 小时配额，将在 ' + localizeQuotaDuration(duration) + '后重置。'],
+    [/^You have hit your 5-?hour limit,?\s*it will refresh in (.*?)\.?$/i, (_, duration) => '您已用完 5 小时配额，将在 ' + localizeQuotaDuration(duration) + '后重置。'],
+    [/^You have hit your weekly limit,?\s*it will refresh in (.*?)\.?$/i, (_, duration) => '您已用完每周配额，将在 ' + localizeQuotaDuration(duration) + '后重置。'],
     [/^Your quota for this model is running low\.?$/i, '您在此模型上的剩余配额即将耗尽。'],
     [/^Your quota for this model has run out\.?$/i, '您在此模型上的配额已耗尽。'],
     [/^Your plan's baseline quota will refresh on (.+?)\.?\s*You can upgrade to a Google AI Ultra plan to receive higher rate limits\.?$/i, '您的套餐基础配额将于 $1 重置刷新。您可以升级至 Google AI Ultra 以获取更高的请求配额与速率上限。'],
@@ -629,13 +658,13 @@
     [/^(\d+) models selected$/i, '已选择 $1 个模型'],
     [/^Auth code for (.+)$/i, '$1 的授权码'],
     [/^The (.+) MCP server requires configuration parameters before it can be started\.?$/i, '$1 MCP 服务器需要先配置参数才能启动。'],
-    [/^See more in (.+)$/i, '在 $1 中查看更多'],
-    [/^See less in (.+)$/i, '在 $1 中收起'],
+    [/^See more in (.+)$/i, (_, category) => '在“' + (lookupDictionary(category) || category) + '”中查看更多'],
+    [/^See less in (.+)$/i, (_, category) => '收起“' + (lookupDictionary(category) || category) + '”中的内容'],
     [/^(?:More actions|更多操作) for (.+)$/i, '$1 的更多操作'],
     [/^(.+),\s*setup required$/i, '$1（需要配置）'],
     [/^Tool Definition:\s*(.+)$/i, '工具定义：$1'],
     [/^Invocation:\s*(.+)$/i, '调用：$1'],
-    [/^Agent permissions preset selector, current:\s*(.+)$/i, '智能体权限预设选择器，当前：$1'],
+    [/^Agent permissions preset selector, current:\s*(.+)$/i, (_, preset) => '智能体权限预设选择器，当前：' + (lookupDictionary(preset) || preset)],
     [/^Undo to (?:this point|here)\.?$/i, '撤销到此处'],
     [/^Search tasks[.…]*$/i, '搜索任务...'],
     [/^Search conversations[.…]*$/i, '搜索对话...'],
@@ -727,14 +756,10 @@
     }
     // --- End Dynamic Regex ---
 
-    // 1. Direct Literal Match (Exact match including punctuation)
-    if (dictionary[trimmed]) {
-      return text.replace(trimmed, dictionary[trimmed]);
-    }
-    
-    const matchingKey = dictionaryLowerIndex[trimmed.toLowerCase()];
-    if (matchingKey !== undefined) {
-      return text.replace(trimmed, dictionary[matchingKey]);
+    // 优先匹配完整文案。
+    const translation = lookupDictionary(trimmed);
+    if (translation !== undefined) {
+      return text.replace(trimmed, translation);
     }
 
     // 2. Intelligent Punctuation Stripping & Reconstruction
@@ -761,16 +786,7 @@
       else trailPunc = matchPunc; // keep ..., …
     }
 
-    // Check stripped core in dictionary
-    let coreTranslated = '';
-    if (dictionary[core]) {
-      coreTranslated = dictionary[core];
-    } else {
-      const matchingCore = dictionaryLowerIndex[core.toLowerCase()];
-      if (matchingCore !== undefined) {
-        coreTranslated = dictionary[matchingCore];
-      }
-    }
+    const coreTranslated = lookupDictionary(core);
 
     if (coreTranslated) {
       return text.replace(trimmed, coreTranslated + trailPunc);
@@ -786,11 +802,8 @@
       }
     }
 
-    // 3. Fallback to word-by-word ONLY for short strings (<= 3 words)
-    // 如果短语中已经包含了中文字符（即原本就是汉化内容或中英混排），则严禁进入英文分词翻译
-    // 这可以完美阻止像中英文混排短语被分词规则执行二次翻译导致重叠和污染
-    const hasChinese = /[一-龥]/.test(core);
-    // This prevents long unmatched sentences from getting mangled into Chinglish.
+    // 已含中文的文案仍可命中整句和动态规则，跳过逐词回退，避免重复替换。
+    if (/[一-龥]/.test(core)) return text;
     const wordsCount = core.split(/\s+/).filter(Boolean).length;
     if (wordsCount > 3) {
       // 长文本子串匹配：用词典中的词条（>=4字符）按长度降序做替换
@@ -817,8 +830,9 @@
       // 覆盖率门槛：命中英文字符占比过低，说明这是整段英文文案
       // （技能/插件描述、智能体回复等），逐词替换只会产生中英夹杂，保持原文
       var ltotalChars = (core.match(/[A-Za-z]/g) || []).length;
-      if (!longReplaced || (ltotalChars > 0 && longMatchedChars / ltotalChars < 0.65)) {
-        return text; // 保持原文
+      const hasEnglishGrammar = /\b(?:an|and|are|be|does|from|into|is|not|the|their|then|there|these|this|those|was|were|when|where|will|with|you|your)\b/i.test(longTemp);
+      if (!longReplaced || hasEnglishGrammar || (ltotalChars > 0 && longMatchedChars / ltotalChars < 0.65)) {
+        return text;
       }
       var lfinal = longTemp;
       lfinal = lfinal.replace(/([一-龥])\s+([一-龥])/g, '$1$2');
@@ -830,10 +844,6 @@
       return text.replace(trimmed, lfinal);
     }
 
-    // 短文本：已含中文的中英混排短语不再逐词翻译，防止二次污染
-    if (hasChinese) {
-      return text;
-    }
     // 全词校验门槛：短文本中每个 >=2 字母的单词都必须命中词典，
     // 否则保持原文（如 "Failed to run" 中 to 未命中 -> 整句保留英文，
     // 杜绝 "已失败 to 运行" 这类中英夹杂）。比覆盖率门槛更可预测。
@@ -981,17 +991,37 @@
     return false;
   }
 
+  function translateAutomationsEmptyState(element) {
+    const children = element.childNodes;
+    if (children.length !== 3 || children[0].nodeType !== Node.TEXT_NODE ||
+        children[2].nodeType !== Node.TEXT_NODE || children[0].nodeValue.trim() !== 'No' ||
+        children[2].nodeValue.trim() !== 'yet' ||
+        children[1].textContent.trim().toLowerCase() !== 'automations') return;
+    // 保留 React 用于单独设置「自动化」样式的子节点。
+    children[0].nodeValue = '暂无';
+    children[2].nodeValue = '任务';
+  }
+
+  function translateTextNode(node) {
+    const original = node.nodeValue;
+    const dialog = /^(?:Plan|计划)$/.test(original.trim())
+      ? node.parentElement?.closest('[role="dialog"],dialog')
+      : null;
+    const planHeading = /Manage your model quota and credits|管理您的模型配额与额度/i.test(dialog?.textContent ?? '');
+    const translated = planHeading ? original.replace(/Plan|计划/, '套餐') : translateString(original);
+    if (original !== translated) {
+      node.nodeValue = translated;
+    }
+  }
+
   function translateNode(node) {
     if (!node) return;
     if (shouldSkipNode(node)) return;
 
     if (node.nodeType === Node.TEXT_NODE) {
-      const original = node.nodeValue;
-      const translated = translateString(original);
-      if (original !== translated) {
-        node.nodeValue = translated;
-      }
+      translateTextNode(node);
     } else if (node.nodeType === Node.ELEMENT_NODE) {
+      translateAutomationsEmptyState(node);
       ['placeholder', 'title', 'aria-label', 'value'].forEach(attr => {
         if (node.hasAttribute && node.hasAttribute(attr)) {
           // 双重锁死：绝对不翻译任何输入框或编辑区的用户 value 属性
@@ -1044,11 +1074,7 @@
           } else if (mutation.type === 'characterData') {
             const node = mutation.target;
             if (!shouldSkipNode(node)) {
-              const original = node.nodeValue;
-              const translated = translateString(original);
-              if (original !== translated) {
-                node.nodeValue = translated;
-              }
+              translateTextNode(node);
             }
           } else if (mutation.type === 'attributes') {
             const target = mutation.target;
