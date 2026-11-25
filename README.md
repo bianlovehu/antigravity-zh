@@ -9,7 +9,7 @@
 ## ✨ 特性
 
 - **零外部依赖**：纯 Python 标准库，`python3 install.py` 即装即用
-- **全界面汉化**：主界面、设置面板、侧边栏、弹窗、错误提示全覆盖（**5982 条词条 + 动态正则规则**）
+- **全界面汉化**：主界面、设置面板、侧边栏、弹窗、错误提示全覆盖（**6052 条词条 + 动态正则规则**）
 - **原生菜单 / 托盘翻译**：顶部菜单栏（File/Edit/View…）与系统托盘菜单一并汉化
 - **原生弹窗 / 加载画面**：退出确认弹窗、启动加载画面等主进程原生 UI 一并汉化
 - **跨平台**：macOS / Windows / Linux 自动探测安装路径
@@ -21,7 +21,7 @@
 ## 📥 安装
 
 ```bash
-git clone https://github.com/zhonghugo/antigravity-zh.git
+git clone https://github.com/bianlovehu/antigravity-zh.git
 cd antigravity-zh
 
 # 安装汉化（自动探测路径）
@@ -55,7 +55,7 @@ py -3 launch.py
 
 1. 解包 `app.asar`
 2. 向 `dist/preload.js` 与 `dist/ideInstall/wizardPreload.js` 注入 DOM 翻译引擎
-   （MutationObserver 实时监听 + 5982 条中英词典，属性/placeholder/title 一并翻译）
+   （MutationObserver 实时监听 + 6052 条中英词典，属性/placeholder/title 一并翻译）
 3. 向 `dist/menu.js` 注入原生菜单翻译、`dist/tray.js` 注入托盘菜单翻译
 4. 向 `dist/main.js` 注入退出确认弹窗翻译、`dist/loadingOverlay.js` 注入启动加载画面翻译
 5. 重新打包（`chrome-devtools-mcp` 保持 unpacked，不影响功能）
@@ -69,7 +69,7 @@ antigravity-zh/
 ├── launch.py           # Windows 启动器（启动时检查、更新后恢复汉化）
 ├── asar.py             # 纯 Python asar 解包/打包库
 ├── dicts/
-│   ├── zh_cn.json      # 5982 条全量翻译词典
+│   ├── zh_cn.json      # 6052 条全量翻译词典
 │   └── engine.js       # DOM 翻译引擎模板（含 __DICT_ITEMS__ 占位符与动态正则规则）
 ├── SKILL.md            # AI 智能体技能说明（可直接作为豆包工作 Skill 使用）
 └── LICENSE             # MIT
@@ -77,12 +77,12 @@ antigravity-zh/
 
 ## 📝 更新日志
 
-### 派生版更新 · Windows 自动恢复汉化（2026-11-25）
+### V2.0（2026-11-25）
 
-- 新增 Windows 启动器，启动时检查当前客户端资源并按需恢复汉化。
-- 适配 Windows 版 Antigravity 2.34.0 的更新交接。官方安装完成后，等待安装进程退出和新版资源稳定，再备份、校验、恢复汉化并启动。
-- 保留按版本归档的原版资源。更新器或应用资源结构变化时，沿用官方流程或显示兼容提示。
-- 已验证本机 2.34.0 启动和模拟更新交接。尚未验证下一次真实升级。
+- **更新后自动恢复汉化。** 新增 Windows 启动器。兼容版本的客户端完成官方更新后，启动器会等待安装进程退出、新版资源稳定，再按版本备份并校验原包，补回汉化后启动客户端。新版更新器结构变化时沿用官方更新流程。
+- **设置页提速。** 为不区分大小写的词典匹配建立索引，并复用短语匹配的正则。在同一台 Windows 电脑、Antigravity 2.32.2 上，打开设置页的耗时中位数从 8.60 秒降到 0.35 秒。修改前后各测三次。 [查看计时方法和结果](https://github.com/zhonghugo/antigravity-zh/pull/2)
+- **修复界面中英混排。** 模型和套餐公告按整句翻译，日期和配额时长按中文格式显示。补齐设置、语音模式、快捷键和插件市场通用界面中的部分漏翻。
+- **验证范围。** Windows 版 2.34.0 已验证启动、原版资源包重打汉化和模拟更新交接。下一次真实升级尚待验证。
 
 ### v1.3.1（2026-10-21）
 
