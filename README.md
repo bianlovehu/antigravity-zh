@@ -84,6 +84,10 @@ antigravity-zh/
 - **修复界面中英混排。** 模型和套餐公告按整句翻译，日期和配额时长按中文格式显示。补齐设置、语音模式、快捷键和插件市场通用界面中的部分漏翻。
 - **验证范围。** Windows 版 2.34.0 已验证启动、原版资源包重打汉化和模拟更新交接。下一次真实升级尚待验证。
 
+> **上游更新记录**
+>
+> 本仓库基于 zhonghugo 的 `antigravity-zh` 项目修改和维护。`V2.0` 是本分叉的发布版本。下方 `v1.3.1` 及更早版本的更新日志来自上游项目，保留供查阅。感谢原作者和贡献者。 [上游项目](https://github.com/zhonghugo/antigravity-zh)
+
 ### v1.3.1（2026-10-21）
 
 * 思考链正文保持英文：`thinking-collapsible` / `planner-response-text` / `artifact-view`
